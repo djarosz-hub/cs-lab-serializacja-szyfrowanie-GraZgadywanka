@@ -21,8 +21,8 @@ namespace AppGraZaDuzoZaMaloCLI
         private object locker = new object();
         private string _plik = "graMaloDuzoBinarnie.bin";
         private bool trwa = false;
-        public int MinZakres { get; private set; } = 1;
-        public int MaxZakres { get; private set; } = 100;
+        public int MinZakres { get; private set; }
+        public int MaxZakres { get; private set; }
 
         public IReadOnlyList<Gra.Ruch> ListaRuchow => gra.ListaRuchow;
         public KontrolerCLI()
@@ -37,35 +37,39 @@ namespace AppGraZaDuzoZaMaloCLI
         public void Uruchom()
         {
             widok.OpisGry();
-            if(WczytajPoprzedniaGre(out Gra wczytanaGra))
+            if (WczytajPoprzedniaGre(out Gra wczytanaGra))
             {
-                gra = wczytanaGra;
-                widok.WczytajPropozycje();
-                if(widok.ChceszKontynuowac("Wczytac poprzednia gre? (t/n)"))
+                //widok.WczytajPropozycje();
+                if (widok.ChceszKontynuowac("Wczytac poprzednia gre? (t/n)"))
                 {
+                    gra = wczytanaGra;
                     if (gra.Wznow())
-                        UruchomRozgrywke();
+                        UruchomRozgrywke(/*false*/);
                     else
                         Console.WriteLine("Gra skonczona.");
                 }
-            }
-            else
-            {
-                UsunPoprzedniaGre();
+                else
+                {
+                    UsunPoprzedniaGre();
+                }
             }
             while (widok.ChceszKontynuowac("Czy chcesz kontynuować aplikację (t/n)? "))
             {
-                gra = new Gra();
                 UstawZakresDoLosowania();
-                UruchomRozgrywke();
+                gra = new Gra(MinZakres, MaxZakres);
+                UruchomRozgrywke(/*true*/);
             }
         }
 
-        public void UruchomRozgrywke()
+        public void UruchomRozgrywke(/*bool nowa*/)
         {
             widok.CzyscEkran();
-           
-            gra = new Gra(MinZakres, MaxZakres);
+            widok.KomunikatPowitalny();
+            Console.WriteLine($"{gra.MinLiczbaDoOdgadniecia} - { gra.MaxLiczbaDoOdgadniecia }");
+            //if(nowa)
+            //    UstawZakresDoLosowania();
+            //gra = new Gra(MinZakres, MaxZakres);
+            //widok.KomunikatPowitalny();
             trwa = true;
             do
             {
@@ -109,8 +113,15 @@ namespace AppGraZaDuzoZaMaloCLI
             //if(gra.StatusGry == Gra.Status.Poddana)
             //    Console.WriteLine(gra.liczbaDoOdgadniecia);
             //if StatusGry == Zakończona wypisz statystyki gry
-            //if (gra.StatusGry == Gra.Status.Zakonczona)
-            //    widok.HistoriaGry();
+            if (gra.StatusGry == Gra.Status.Zakonczona)
+            {
+                Console.WriteLine($"Odgadnieto: {gra.liczbaDoOdgadniecia}");
+                trwa = false;
+                Thread.Sleep(1000);
+                UsunPoprzedniaGre();
+                //widok.CzyscEkran();
+                //widok.HistoriaGry();
+            }
         }
 
         ///////////////////////
@@ -158,7 +169,7 @@ namespace AppGraZaDuzoZaMaloCLI
         }
         private void ZapisywanieGryWTle()
         {
-            if(trwa)
+            if (trwa)
                 ZapiszGre();
             Thread.Sleep(1000);
             ZapisywanieGryWTle();
@@ -174,7 +185,7 @@ namespace AppGraZaDuzoZaMaloCLI
                 lock (locker)
                 {
                     IFormatter formatter = new BinaryFormatter();
-                    using(Stream s = new FileStream(_plik, FileMode.Create, FileAccess.Write))
+                    using (Stream s = new FileStream(_plik, FileMode.Create, FileAccess.Write))
                     {
                         formatter.Serialize(s, gra);
                     }
@@ -191,7 +202,7 @@ namespace AppGraZaDuzoZaMaloCLI
             if (File.Exists(_plik))
             {
                 bool flag = false;
-                using(Stream s = new FileStream(_plik, FileMode.Open, FileAccess.Read))
+                using (Stream s = new FileStream(_plik, FileMode.Open, FileAccess.Read))
                 {
                     try
                     {
@@ -219,6 +230,7 @@ namespace AppGraZaDuzoZaMaloCLI
         /// <returns></returns>
         public int WczytajLiczbeLubKoniec(string value, int defaultValue)
         {
+            widok.CzyscEkran();
             if (string.IsNullOrEmpty(value))
                 return defaultValue;
 

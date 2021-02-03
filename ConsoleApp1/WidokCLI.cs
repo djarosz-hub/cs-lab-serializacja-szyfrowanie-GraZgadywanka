@@ -17,7 +17,7 @@ namespace AppGraZaDuzoZaMaloCLI
 
         public void CzyscEkran() => Clear();
 
-        public void KomunikatPowitalny() => WriteLine("Wylosowałem liczbę z zakresu ");
+        public void KomunikatPowitalny() => Write("Wylosowałem liczbę z zakresu ");
 
         public int WczytajPropozycje()
         {
@@ -82,7 +82,7 @@ namespace AppGraZaDuzoZaMaloCLI
             int i = 1;
             foreach ( var ruch in kontroler.ListaRuchow)
             {
-                WriteLine($"{i}     {ruch.Liczba}      {ruch.Wynik}  {ruch.Czas.Second}   {ruch.StatusGry}");
+                WriteLine($"{i}     {ruch.Liczba}      {ruch.Wynik}  {(ruch.Czas - ruch.CzasGry).ToString("mm:ss")}   {ruch.StatusGry}");
                 i++;
             }
         }

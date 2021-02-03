@@ -54,7 +54,7 @@ namespace GraZaDuzoZaMalo.Model
         /// <value>
         /// Domyślna wartość wynosi 100. Wartość jest ustawiana w konstruktorze i nie może zmienić się podczas życia obiektu gry.
         /// </value>
-        public int MaxLiczbaDoOdgadniecia { get; } = 100;
+        public int MaxLiczbaDoOdgadniecia { get; }
 
         /// <summary>
         /// Dolne ograniczenie losowanej liczby, która ma zostać odgadnięta.
@@ -62,7 +62,7 @@ namespace GraZaDuzoZaMalo.Model
         /// <value>
         /// Domyślna wartość wynosi 1. Wartość jest ustawiana w konstruktorze i nie może zmienić się podczas życia obiektu gry.
         /// </value>
-        public int MinLiczbaDoOdgadniecia { get; } = 1;
+        public int MinLiczbaDoOdgadniecia { get; }
 
 
         internal readonly int liczbaDoOdgadniecia;
@@ -116,7 +116,11 @@ namespace GraZaDuzoZaMalo.Model
         public Gra(int min, int max)
         {
             if (min >= max)
-                throw new ArgumentException();
+            {
+                min = 1;
+                max = 100;
+                Console.WriteLine("Niepoprawne wartosci, przyjeto zakres 1 - 100");
+            }
 
             MinLiczbaDoOdgadniecia = min;
             MaxLiczbaDoOdgadniecia = max;
@@ -130,7 +134,7 @@ namespace GraZaDuzoZaMalo.Model
             listaRuchow = new List<Ruch>();
         }
 
-        public Gra() : this(1, 100) { }
+        //public Gra() : this(1, 100) { }
 
 
         /// <summary>
@@ -146,7 +150,7 @@ namespace GraZaDuzoZaMalo.Model
                 odp = Odpowiedz.Trafiony;
                 StatusGry = Status.Zakonczona;
                 CzasZakonczenia = DateTime.Now;
-                listaRuchow.Add(new Ruch(pytanie, odp, Status.Zakonczona,CzasZawieszonejGry));
+                listaRuchow.Add(new Ruch(pytanie, odp, Status.Zakonczona, CzasZawieszonejGry));
             }
             else if (pytanie < liczbaDoOdgadniecia)
                 odp = Odpowiedz.ZaMalo;
@@ -155,7 +159,7 @@ namespace GraZaDuzoZaMalo.Model
 
             if (StatusGry == Status.WTrakcie)
             {
-                listaRuchow.Add(new Ruch(pytanie, odp, Status.WTrakcie,CzasZawieszonejGry));
+                listaRuchow.Add(new Ruch(pytanie, odp, Status.WTrakcie, CzasZawieszonejGry));
             }
             return odp;
         }
@@ -166,19 +170,19 @@ namespace GraZaDuzoZaMalo.Model
             {
                 StatusGry = Status.Zawieszona;
                 CzasZakonczenia = DateTime.Now;
-                listaRuchow.Add(new Ruch(null, null, Status.WTrakcie,CzasZawieszonejGry));
+                listaRuchow.Add(new Ruch(null, null, Status.WTrakcie, CzasZawieszonejGry));
             }
 
             return liczbaDoOdgadniecia;
         }
         public bool Wznow()
         {
-            if(StatusGry == Status.WTrakcie || StatusGry == Status.Zawieszona)
+            if (StatusGry == Status.WTrakcie || StatusGry == Status.Zawieszona)
             {
                 StatusGry = Status.WTrakcie;
                 //var last = listaRuchow.Last().Czas;
-                if(listaRuchow.Count > 0)
-                    CzasZawieszonejGry += DateTime.Now - listaRuchow[listaRuchow.Count-1].Czas;
+                //if(listaRuchow.Count > 0)
+                //CzasZawieszonejGry += DateTime.Now - listaRuchow[listaRuchow.Count - 1].Czas;
                 listaRuchow.Add(new Ruch(null, null, StatusGry, CzasZawieszonejGry));
                 return true;
             }
