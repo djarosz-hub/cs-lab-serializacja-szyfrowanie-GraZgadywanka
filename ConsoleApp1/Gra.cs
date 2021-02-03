@@ -45,6 +45,7 @@ namespace GraZaDuzoZaMalo.Model
     /// Pojedynczy Ruch
     /// </para>
     /// </remarks>
+    [Serializable]
     public class Gra
     {
         /// <summary>
@@ -64,7 +65,7 @@ namespace GraZaDuzoZaMalo.Model
         public int MinLiczbaDoOdgadniecia { get; } = 1;
 
 
-        readonly private int liczbaDoOdgadniecia;
+        internal readonly int liczbaDoOdgadniecia;
 
 
         /// <summary>
@@ -77,7 +78,11 @@ namespace GraZaDuzoZaMalo.Model
             /// <summary>Status gry ustawiany w momencie odgadnięcia poszukiwanej liczby.</summary>
             Zakonczona,
             /// <summary>Status gry ustawiany w momencie jawnego przerwania gry przez gracza.</summary>
-            Poddana
+            Poddana,
+            /// <summary>
+            /// Status gry ustawiany w momencie zawieszenia gry przez gracza
+            /// </summary>
+            Zawieszona
         };
 
         /// <summary>
@@ -106,6 +111,7 @@ namespace GraZaDuzoZaMalo.Model
         /// </summary>
         public TimeSpan AktualnyCzasGry => DateTime.Now - CzasRozpoczecia;
         public TimeSpan CalkowityCzasGry => (StatusGry == Status.WTrakcie) ? AktualnyCzasGry : (TimeSpan)(CzasZakonczenia - CzasRozpoczecia);
+        public TimeSpan CzasZawieszonejGry { get; set; }
 
         public Gra(int min, int max)
         {
@@ -119,6 +125,7 @@ namespace GraZaDuzoZaMalo.Model
             CzasRozpoczecia = DateTime.Now;
             CzasZakonczenia = null;
             StatusGry = Status.WTrakcie;
+            CzasZawieszonejGry = CzasRozpoczecia.TimeOfDay;
 
             listaRuchow = new List<Ruch>();
         }
@@ -139,19 +146,17 @@ namespace GraZaDuzoZaMalo.Model
                 odp = Odpowiedz.Trafiony;
                 StatusGry = Status.Zakonczona;
                 CzasZakonczenia = DateTime.Now;
-                listaRuchow.Add(new Ruch(pytanie, odp, Status.Zakonczona));
+                listaRuchow.Add(new Ruch(pytanie, odp, Status.Zakonczona,CzasZawieszonejGry));
             }
             else if (pytanie < liczbaDoOdgadniecia)
                 odp = Odpowiedz.ZaMalo;
             else
                 odp = Odpowiedz.ZaDuzo;
 
-            //dopisz do listy
             if (StatusGry == Status.WTrakcie)
             {
-                listaRuchow.Add(new Ruch(pytanie, odp, Status.WTrakcie));
+                listaRuchow.Add(new Ruch(pytanie, odp, Status.WTrakcie,CzasZawieszonejGry));
             }
-
             return odp;
         }
 
@@ -159,12 +164,25 @@ namespace GraZaDuzoZaMalo.Model
         {
             if (StatusGry == Status.WTrakcie)
             {
-                StatusGry = Status.Poddana;
+                StatusGry = Status.Zawieszona;
                 CzasZakonczenia = DateTime.Now;
-                listaRuchow.Add(new Ruch(null, null, Status.WTrakcie));
+                listaRuchow.Add(new Ruch(null, null, Status.WTrakcie,CzasZawieszonejGry));
             }
 
             return liczbaDoOdgadniecia;
+        }
+        public bool Wznow()
+        {
+            if(StatusGry == Status.WTrakcie || StatusGry == Status.Zawieszona)
+            {
+                StatusGry = Status.WTrakcie;
+                //var last = listaRuchow.Last().Czas;
+                if(listaRuchow.Count > 0)
+                    CzasZawieszonejGry += DateTime.Now - listaRuchow[listaRuchow.Count-1].Czas;
+                listaRuchow.Add(new Ruch(null, null, StatusGry, CzasZawieszonejGry));
+                return true;
+            }
+            return false;
         }
 
 
@@ -175,20 +193,22 @@ namespace GraZaDuzoZaMalo.Model
             Trafiony = 0,
             ZaDuzo = 1
         };
-
+        [Serializable]
         public class Ruch
         {
             public int? Liczba { get; }
             public Odpowiedz? Wynik { get; }
             public Status StatusGry { get; }
             public DateTime Czas { get; }
+            public TimeSpan CzasGry { get; }
 
-            public Ruch(int? propozycja, Odpowiedz? odp, Status statusGry)
+            public Ruch(int? propozycja, Odpowiedz? odp, Status statusGry, TimeSpan czasGry)
             {
                 this.Liczba = propozycja;
                 this.Wynik = odp;
                 this.StatusGry = statusGry;
                 this.Czas = DateTime.Now;
+                this.CzasGry = czasGry;
             }
 
             public override string ToString()
@@ -196,7 +216,5 @@ namespace GraZaDuzoZaMalo.Model
                 return $"({Liczba}, {Wynik}, {Czas}, {StatusGry})";
             }
         }
-
-
     }
 }
