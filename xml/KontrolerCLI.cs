@@ -239,7 +239,7 @@ namespace AppGraZaDuzoZaMaloCLI
                         var temp = OdszyfrujPlik(s);
                         temp.Save(mS);
                         mS.Position = 0;
-                        gra = (Gra)dcs.ReadObject(mS);
+                        poprzedniaGra = (Gra)dcs.ReadObject(mS);
                         flag = true;
                     }
                     catch(Exception e)
