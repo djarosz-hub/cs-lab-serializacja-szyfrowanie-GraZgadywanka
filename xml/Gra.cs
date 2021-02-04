@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -45,6 +46,7 @@ namespace GraZaDuzoZaMalo.Model
     /// Pojedynczy Ruch
     /// </para>
     /// </remarks>
+    [DataContract]
     public class Gra
     {
         /// <summary>
@@ -53,7 +55,8 @@ namespace GraZaDuzoZaMalo.Model
         /// <value>
         /// Domyślna wartość wynosi 100. Wartość jest ustawiana w konstruktorze i nie może zmienić się podczas życia obiektu gry.
         /// </value>
-        public int MaxLiczbaDoOdgadniecia { get; } = 100;
+        [DataMember]
+        public int MaxLiczbaDoOdgadniecia { get; private set; } = 100;
 
         /// <summary>
         /// Dolne ograniczenie losowanej liczby, która ma zostać odgadnięta.
@@ -61,10 +64,11 @@ namespace GraZaDuzoZaMalo.Model
         /// <value>
         /// Domyślna wartość wynosi 1. Wartość jest ustawiana w konstruktorze i nie może zmienić się podczas życia obiektu gry.
         /// </value>
-        public int MinLiczbaDoOdgadniecia { get; } = 1;
+        [DataMember]
+        public int MinLiczbaDoOdgadniecia { get; private set; } = 1;
 
-
-        readonly private int liczbaDoOdgadniecia;
+        [DataMember]
+        internal readonly int liczbaDoOdgadniecia;
 
 
         /// <summary>
@@ -77,7 +81,8 @@ namespace GraZaDuzoZaMalo.Model
             /// <summary>Status gry ustawiany w momencie odgadnięcia poszukiwanej liczby.</summary>
             Zakonczona,
             /// <summary>Status gry ustawiany w momencie jawnego przerwania gry przez gracza.</summary>
-            Poddana
+            Poddana,
+            Zawieszona
         };
 
         /// <summary>
@@ -88,9 +93,10 @@ namespace GraZaDuzoZaMalo.Model
         /// <para>Zmiana wartości zmiennej na <see cref="Gra.Status.Poddana"/> po uruchomieniu metody <see cref="Przerwij"/>.</para>
         /// <para>Zmiana wartości zmiennej na <see cref="Gra.Status.Zakonczona"/> w metodzie <see cref="Propozycja(int)"/>, po podaniu poprawnej, odgadywanej liczby.</para>
         /// </remarks>
+        [DataMember]
         public Status StatusGry { get; private set; }
 
-
+        [DataMember]
         private List<Ruch> listaRuchow;
 
         public IReadOnlyList<Ruch> ListaRuchow { get { return listaRuchow.AsReadOnly(); } }
@@ -98,7 +104,8 @@ namespace GraZaDuzoZaMalo.Model
         /// <summary>
         /// Czas rozpoczęcia gry, ustawiany w momencie utworzenia obiektu gry, w konstruktorze. Nie można go już zmodyfikować podczas życia obiektu.
         /// </summary>
-        public DateTime CzasRozpoczecia { get; }
+        [DataMember]
+        public DateTime CzasRozpoczecia { get; private set; }
         public DateTime? CzasZakonczenia { get; private set; }
 
         /// <summary>
@@ -106,11 +113,16 @@ namespace GraZaDuzoZaMalo.Model
         /// </summary>
         public TimeSpan AktualnyCzasGry => DateTime.Now - CzasRozpoczecia;
         public TimeSpan CalkowityCzasGry => (StatusGry == Status.WTrakcie) ? AktualnyCzasGry : (TimeSpan)(CzasZakonczenia - CzasRozpoczecia);
-
+        [DataMember]
+        public TimeSpan CzasZawieszonejGry { get; set; }
         public Gra(int min, int max)
         {
             if (min >= max)
-                throw new ArgumentException();
+            {
+                min = 1;
+                max = 100;
+                Console.WriteLine("Niepoprawne wartosci, przyjeto zakres 1 - 100");
+            }
 
             MinLiczbaDoOdgadniecia = min;
             MaxLiczbaDoOdgadniecia = max;
@@ -119,11 +131,11 @@ namespace GraZaDuzoZaMalo.Model
             CzasRozpoczecia = DateTime.Now;
             CzasZakonczenia = null;
             StatusGry = Status.WTrakcie;
-
+            CzasZawieszonejGry = CzasRozpoczecia.TimeOfDay;
             listaRuchow = new List<Ruch>();
         }
 
-        public Gra() : this(1, 100) { }
+        //public Gra() : this(1, 100) { }
 
 
         /// <summary>
@@ -139,34 +151,43 @@ namespace GraZaDuzoZaMalo.Model
                 odp = Odpowiedz.Trafiony;
                 StatusGry = Status.Zakonczona;
                 CzasZakonczenia = DateTime.Now;
-                listaRuchow.Add(new Ruch(pytanie, odp, Status.Zakonczona));
+                listaRuchow.Add(new Ruch(pytanie, odp, Status.Zakonczona, CzasZawieszonejGry));
             }
             else if (pytanie < liczbaDoOdgadniecia)
                 odp = Odpowiedz.ZaMalo;
             else
                 odp = Odpowiedz.ZaDuzo;
 
-            //dopisz do listy
             if (StatusGry == Status.WTrakcie)
             {
-                listaRuchow.Add(new Ruch(pytanie, odp, Status.WTrakcie));
+                listaRuchow.Add(new Ruch(pytanie, odp, Status.WTrakcie, CzasZawieszonejGry));
             }
-
             return odp;
+        }
+        public bool Wznow()
+        {
+            if (StatusGry == Status.WTrakcie || StatusGry == Status.Zawieszona)
+            {
+                StatusGry = Status.WTrakcie;
+                //var last = listaRuchow.Last().Czas;
+                //if(listaRuchow.Count > 0)
+                //CzasZawieszonejGry += DateTime.Now - listaRuchow[listaRuchow.Count - 1].Czas;
+                listaRuchow.Add(new Ruch(null, null, StatusGry, CzasZawieszonejGry));
+                return true;
+            }
+            return false;
         }
 
         public int Przerwij()
         {
             if (StatusGry == Status.WTrakcie)
             {
-                StatusGry = Status.Poddana;
+                StatusGry = Status.Zawieszona;
                 CzasZakonczenia = DateTime.Now;
-                listaRuchow.Add(new Ruch(null, null, Status.WTrakcie));
+                listaRuchow.Add(new Ruch(null, null, Status.WTrakcie, CzasZawieszonejGry));
             }
-
             return liczbaDoOdgadniecia;
         }
-
 
         // struktury wewnętrzne, pomocnicze
         public enum Odpowiedz
@@ -175,20 +196,27 @@ namespace GraZaDuzoZaMalo.Model
             Trafiony = 0,
             ZaDuzo = 1
         };
-
+        [DataContract]
         public class Ruch
         {
-            public int? Liczba { get; }
-            public Odpowiedz? Wynik { get; }
-            public Status StatusGry { get; }
-            public DateTime Czas { get; }
+            [DataMember]
+            public int? Liczba { get; private set; }
+            [DataMember]
+            public Odpowiedz? Wynik { get; private set; }
+            [DataMember]
+            public Status StatusGry { get; private set; }
+            [DataMember]
+            public DateTime Czas { get; private set; }
+            [DataMember]
+            public TimeSpan CzasGry { get; private set; }
 
-            public Ruch(int? propozycja, Odpowiedz? odp, Status statusGry)
+            public Ruch(int? propozycja, Odpowiedz? odp, Status statusGry, TimeSpan czasGry)
             {
                 this.Liczba = propozycja;
                 this.Wynik = odp;
                 this.StatusGry = statusGry;
                 this.Czas = DateTime.Now;
+                this.CzasGry = czasGry;
             }
 
             public override string ToString()

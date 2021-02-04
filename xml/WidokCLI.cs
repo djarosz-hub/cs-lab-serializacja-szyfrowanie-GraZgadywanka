@@ -30,7 +30,7 @@ namespace AppGraZaDuzoZaMaloCLI
                 {
                     string value = ReadLine().TrimStart().ToUpper();
                     if (value.Length > 0 && value[0].Equals(ZNAK_ZAKONCZENIA_GRY))
-                        throw new KoniecGryException();
+                        kontroler.ZakonczGre();
 
                     //UWAGA: ponizej może zostać zgłoszony wyjątek 
                     wynik = Int32.Parse(value);
@@ -82,7 +82,7 @@ namespace AppGraZaDuzoZaMaloCLI
             int i = 1;
             foreach ( var ruch in kontroler.ListaRuchow)
             {
-                WriteLine($"{i}     {ruch.Liczba}      {ruch.Wynik}  {ruch.Czas.Second}   {ruch.StatusGry}");
+                WriteLine($"{i}     {ruch.Liczba}      {ruch.Wynik}  {(ruch.Czas - ruch.CzasGry).ToString("mm:ss")}   {ruch.StatusGry}");
                 i++;
             }
         }
